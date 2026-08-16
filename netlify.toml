@@ -9,8 +9,16 @@
   # application — it is deployed from the `dentalai` repository — so the demo
   # link has to be an absolute URL off this origin.
   #
-  # TODO: replace with the application's real address before going live.
-  VITE_APP_URL = "https://app.summitaisoftware.com/login"
+  # This is the application's address today: summitaisoftware.com is the
+  # Netlify site built from `dentalai/client`, and /login serves the demo
+  # sign-in. Verified answering 200.
+  #
+  # CHANGE THIS WHEN THE APEX MOVES. The intended end state is this site at
+  # summitaisoftware.com and the application somewhere else — the moment DNS
+  # for the apex points here, this URL starts resolving to the landing page
+  # itself and every demo button becomes a link to the page you are already on.
+  # Point it at the application's new home in the same change.
+  VITE_APP_URL = "https://summitaisoftware.com/login"
 
   # There is no API variable, and that is not an omission. The contact form
   # posts nowhere — it composes a prefilled email for the visitor to send —

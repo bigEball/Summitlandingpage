@@ -51,6 +51,15 @@ the application, which deploys from `dentalai`, not from here. Set it wrong and
 the demo buttons 404, which is the single most expensive thing that can break on
 this site.
 
+It currently points at `https://summitaisoftware.com/login`, which is where the
+application answers today.
+
+**That value has an expiry date.** The intended end state is this site at
+`summitaisoftware.com` and the application somewhere else. The moment apex DNS
+points here, `summitaisoftware.com/login` resolves to *this* site — which has no
+`/login` — and every demo button breaks. Move the application and change this
+URL in the same deploy, not in two.
+
 ## The contact form does not post anywhere
 
 It validates, then hands the visitor an email addressed to

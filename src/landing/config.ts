@@ -16,13 +16,13 @@ const env: Record<string, string | undefined> =
   (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
 
 /**
- * Where "Open the live demo" goes.
+ * Where "Open the live demo" goes — the single most expensive link on the site
+ * to get wrong, since the demo is the whole pitch of the page.
  *
- * TODO: point this at the deployed application before the site goes live. Until
- * it is set, the demo buttons land on the app's sign-in path relative to this
- * site — which does not exist here, so they 404. Set `VITE_APP_URL` in the
- * Netlify environment (or edit the fallback below) to the app's real address,
- * e.g. https://app.summitaisoftware.com/login
+ * Production sets this in `netlify.toml`. The fallback is relative on purpose:
+ * `npm run dev` with no `.env` then behaves the way the page did when it lived
+ * inside the application, which is the least surprising thing for someone
+ * running it locally for the first time.
  */
 export const APP_URL = env.VITE_APP_URL ?? '/login';
 

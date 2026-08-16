@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    /* The page's own ground colour. Every route paints a `summit-root` over
+       this, but the body still shows through above and below the content on a
+       short page and during overscroll — left at the application's grey it was
+       a different colour from the page sitting on top of it. */
+    @apply bg-[#eef2f8] text-[#0a1628] antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}

@@ -1,0 +1,55 @@
+[build]
+  command = "npm install && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+  # Where "Open the live demo" sends people. This site does not contain the
+  # application — it is deployed from the `dentalai` repository — so the demo
+  # link has to be an absolute URL off this origin.
+  #
+  # TODO: replace with the application's real address before going live.
+  VITE_APP_URL = "https://app.summitaisoftware.com/login"
+
+  # Origin of the API that takes contact-form submissions. That server must
+  # list this site in its own CORS_ORIGIN environment variable, or the browser
+  # blocks the POST and the form falls back to a prefilled mailto.
+  #
+  # TODO: replace with the API server's real address before going live.
+  VITE_API_BASE = "https://api.summitaisoftware.com"
+
+# No SPA catch-all rewrite, and that is deliberate.
+#
+# Every public URL on this site is prerendered to a real file — dist/index.html,
+# dist/about/index.html and so on — and Netlify serves a matching file before it
+# consults any redirect rule. A catch-all would only ever apply to URLs that are
+# not pages here, and answering those with 200 and the home page's markup turns
+# every typo into a soft 404 that crawlers index. Letting them 404 is correct.
+#
+# The router still has a `*` route sending unknown paths home, which covers the
+# case where someone is already on the site and clicks a bad in-app link.
+
+# The pages are prerendered to directories (dist/about/index.html), and the
+# canonical tag each page declares has no trailing slash (`/about`). Netlify's
+# "Pretty URLs" processing adds one, which would leave every page advertising
+# one address and redirecting to another.
+#
+# VERIFY ON FIRST DEPLOY: load /about and check the address bar does not become
+# /about/, and that the canonical in the served HTML matches whatever URL you
+# ended up on. If they disagree, the fix is one line — either leave this false,
+# or add the trailing slash to `absoluteUrl` in src/landing/seo.ts so the
+# canonicals follow Netlify rather than fight it.
+[build.processing.html]
+  pretty_urls = false
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    # Hashed filenames, so a given URL's contents never change.
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

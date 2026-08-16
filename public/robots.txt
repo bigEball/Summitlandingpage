@@ -1,0 +1,25 @@
+# Summit Tech — https://summitaisoftware.com
+#
+# This host serves the public site only. Every URL on it is prerendered to a
+# real HTML file at build time, so a crawler that does not run JavaScript still
+# reads the full page rather than an empty shell.
+#
+# The application — the sign-in and the screens behind it — is a separate
+# deployment on its own host, and carries its own robots.txt. Nothing here
+# needs to disallow those paths, because none of them resolve on this host.
+
+User-agent: *
+Allow: /
+
+# A confirmation screen is a real URL, but nothing should arrive on it from a
+# search result. Matches the `noindex` on the same route in src/landing/seo.ts.
+Disallow: /thank-you
+
+# The answer-engine crawlers — GPTBot, OAI-SearchBot, ClaudeBot,
+# PerplexityBot, Google-Extended, Applebot-Extended — are deliberately left
+# to the group above rather than given groups of their own: a named group
+# replaces the wildcard rather than adding to it. Getting quoted by these is
+# the point of llms.txt and the JSON-LD in the page head. Blocking any of them
+# is a business decision, not a default.
+
+Sitemap: https://summitaisoftware.com/sitemap.xml

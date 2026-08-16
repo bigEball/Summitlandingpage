@@ -1,8 +1,7 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { COMPANY, SMS_CONSENT_LABEL, SMS_DISCLOSURE } from './company';
-import { API_BASE } from './config';
 import { proseLink } from './prose';
 
 const EMPTY = { name: '', email: '', practice: '', phone: '', message: '' };
@@ -10,22 +9,36 @@ const EMPTY = { name: '', email: '', practice: '', phone: '', message: '' };
 const isEmail = (value: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value);
 
 /**
- * Everything the visitor typed, as an email they can send themselves.
+ * Everything the visitor typed, as an email addressed and written for them.
  *
- * This site is static and the API that takes submissions lives in a different
- * deployment, reached cross-origin. That is one more thing that can be down,
- * misconfigured, or blocked by CORS than a same-origin post was. Without a way
- * out, a filled-in enquiry ends at "please try again" and the lead is simply
- * lost — the worst possible failure on the one page whose entire job is
- * collecting them.
+ * This site is static and has no backend to post to — the application it used
+ * to share an origin with now serves its API as a mock, and there is nothing
+ * left to receive a form. So the last step happens in the visitor's own mail
+ * client rather than over the wire.
+ *
+ * The trade is deliberate and worth stating plainly: a lead only arrives if the
+ * visitor actually presses send in their email app, and nothing on our side
+ * records the ones who do not. What it buys is that no enquiry can be lost to a
+ * server being down, a CORS header being wrong, or a database nobody set up —
+ * the failure modes that were live the moment this became a separate
+ * deployment. Swap this for Netlify Forms when automatic capture matters more
+ * than having zero infrastructure.
+ *
+ * `source` rides along in the body so a lead says which page it came from.
  */
-function mailtoFallback(form: typeof EMPTY, smsConsent: boolean) {
+function composeEmail(form: typeof EMPTY, smsConsent: boolean, source: string) {
   const body = [
     `Name: ${form.name}`,
     `Practice: ${form.practice}`,
     `Email: ${form.email}`,
     form.phone ? `Phone: ${form.phone}` : null,
-    smsConsent ? 'Consented to SMS: yes' : null,
+    // The privacy policy promises a timestamped record of every opt-in. With no
+    // database to write one to, the email itself is that record — which is why
+    // the consent line is stated in full rather than as a bare "yes".
+    smsConsent
+      ? `SMS consent: yes — opted in on the ${source} page at ${new Date().toISOString()}`
+      : null,
+    `Source: ${source}`,
     '',
     form.message || '(no message)',
   ]
@@ -45,18 +58,24 @@ export default function ContactForm({ source = 'contact' }: { source?: string })
   const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY);
   const [smsConsent, setSmsConsent] = useState(false);
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  const [undeliverable, setUndeliverable] = useState(false);
+  const [ready, setReady] = useState(false);
+  const handoffRef = useRef<HTMLDivElement>(null);
+
+  // The form is replaced rather than added to, so focus has to be moved by hand
+  // or a keyboard or screen-reader user is left on a control that no longer
+  // exists and hears nothing about what happened.
+  useEffect(() => {
+    if (ready) handoffRef.current?.focus();
+  }, [ready]);
 
   function set(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
   }
 
-  async function submit(event: FormEvent) {
+  function submit(event: FormEvent) {
     event.preventDefault();
     setError('');
-    setUndeliverable(false);
 
     if (!form.name.trim() || !form.email.trim() || !form.practice.trim()) {
       setError('Name, email, and practice are required.');
@@ -72,62 +91,44 @@ export default function ContactForm({ source = 'contact' }: { source?: string })
       return;
     }
 
-    setSending(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/v1/demo-requests`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          practice: form.practice,
-          phone: form.phone || null,
-          message: form.message || null,
-          source,
-          smsConsent,
-        }),
-      });
-      if (!response.ok) {
-        setUndeliverable(true);
-        return;
-      }
-    } catch {
-      setUndeliverable(true);
-      return;
-    } finally {
-      setSending(false);
-    }
-
-    navigate('/thank-you');
+    setReady(true);
   }
 
-  // The form succeeded at everything except reaching us. Rather than asking
-  // someone to retype it into their mail client, hand it over already written.
-  if (undeliverable) {
+  // Validated, and now written as an email for them to send. Not an error state
+  // — this is how the form works — so it is announced politely rather than
+  // interrupting, and it is worded as the next step rather than a failure.
+  if (ready) {
     return (
       <div
-        role="alert"
-        className="rounded-2xl border border-[#d8e1ed] bg-white p-6 shadow-[0_1px_2px_rgba(10,22,40,0.04)] sm:p-8"
+        ref={handoffRef}
+        tabIndex={-1}
+        role="status"
+        aria-live="polite"
+        className="rounded-2xl border border-[#d8e1ed] bg-white p-6 shadow-[0_1px_2px_rgba(10,22,40,0.04)] outline-none sm:p-8"
       >
         <h2 className="text-[20px] font-semibold tracking-[-0.02em] text-[#0a1628]">
-          We could not send that from here.
+          One last step — send it from your email.
         </h2>
         <p className="mt-3 text-[16px] leading-7 text-[#4a5b73]">
-          Nothing you typed is lost. Send it to us directly — the message below opens in your
-          email with everything already filled in.
+          We do not store messages on this site, so the send happens in your own email app.
+          Everything you typed is already written into it — open it and press send.
         </p>
 
         <div className="mt-6 flex flex-wrap items-center gap-4">
           <a
-            href={mailtoFallback(form, smsConsent)}
+            href={composeEmail(form, smsConsent, source)}
+            /* No `preventDefault` — the browser hands the mailto to the mail
+               client and the page stays put, so the route change is safe to do
+               alongside it. */
+            onClick={() => navigate('/thank-you')}
             className="summit-cta summit-cta-primary inline-flex items-center gap-2 rounded-full bg-[#0a1628] px-6 py-3 text-[16px] font-medium tracking-tight text-white"
           >
-            Email it to us
+            Open my email
             <ArrowRight className="summit-cta-arrow h-4 w-4" />
           </a>
           <button
             type="button"
-            onClick={() => setUndeliverable(false)}
+            onClick={() => setReady(false)}
             className="text-[16px] font-medium text-[#0a1628] underline underline-offset-4 transition-opacity hover:opacity-70"
           >
             Back to the form
@@ -135,7 +136,7 @@ export default function ContactForm({ source = 'contact' }: { source?: string })
         </div>
 
         <p className="mt-6 text-[15px] leading-6 text-[#5d6b80]">
-          Or reach us at{' '}
+          If that button does nothing, this browser has no mail app set up. Reach us at{' '}
           <a href={`mailto:${COMPANY.email}`} className={proseLink}>
             {COMPANY.email}
           </a>{' '}
@@ -273,11 +274,10 @@ export default function ContactForm({ source = 'contact' }: { source?: string })
 
       <button
         type="submit"
-        disabled={sending}
-        className="summit-cta summit-cta-primary mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#0a1628] px-5 py-3.5 text-[16px] font-medium tracking-tight text-white disabled:cursor-not-allowed disabled:opacity-60"
+        className="summit-cta summit-cta-primary mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#0a1628] px-5 py-3.5 text-[16px] font-medium tracking-tight text-white"
       >
-        {sending ? 'Sending...' : 'Send message'}
-        {!sending && <ArrowRight className="summit-cta-arrow h-4 w-4" />}
+        Send message
+        <ArrowRight className="summit-cta-arrow h-4 w-4" />
       </button>
 
       <p className="mt-4 text-[13px] leading-5 text-[#5d6b80]">{SMS_DISCLOSURE}</p>

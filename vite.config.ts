@@ -47,18 +47,10 @@ export default defineConfig(({ isSsrBuild }) => ({
           },
     },
   },
+  /* No `/api` proxy. Nothing on this site makes a request — the contact form
+     composes an email rather than posting. */
   server: {
     port: 5180,
     strictPort: true,
-    /* The contact form posts to the API server in the `dentalai` repository.
-       In development `VITE_API_BASE` is left empty, so the request is
-       same-origin and lands here to be forwarded. In production it is set to
-       the API's absolute origin and this proxy is not involved. */
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-      },
-    },
   },
 }))

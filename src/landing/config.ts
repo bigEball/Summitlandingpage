@@ -1,10 +1,9 @@
 /**
- * The two addresses this site does not own.
+ * The one address this site does not own.
  *
  * The marketing site used to live inside the application's build, so the demo
- * was a router link and the contact form posted to a same-origin path. Split
- * into its own deployment, both of those cross an origin boundary and have to
- * be spelled out.
+ * was an ordinary router link. Split into its own deployment, it crosses an
+ * origin boundary and has to be spelled out.
  *
  * Deliberately not in `company.ts`: that file is imported by `seo.ts`, which
  * `vite.config.ts` imports in plain Node to emit the sitemap. `import.meta.env`
@@ -27,17 +26,9 @@ const env: Record<string, string | undefined> =
  */
 export const APP_URL = env.VITE_APP_URL ?? '/login';
 
-/**
- * Origin of the API that takes contact-form submissions — the Express server
- * in the `dentalai` repository, which owns `/api/v1/demo-requests`.
- *
- * Empty means same-origin, which is what `npm run dev` wants: the Vite proxy
- * below forwards `/api` to localhost:3001. In production it must be the
- * absolute origin of the API server, and that server's `CORS_ORIGIN` must list
- * this site — otherwise the browser blocks the POST and the form falls back to
- * handing the visitor a prefilled mailto.
+/*
+ * There is deliberately no API base here. This site posts nothing: the contact
+ * form hands the visitor a prefilled email instead, because the application it
+ * used to share an origin with now serves its own API as a static mock, and
+ * there is no server left to receive a submission. See `ContactForm.tsx`.
  */
-export const API_BASE = env.VITE_API_BASE ?? '';
-
-/** True when `APP_URL` leaves this origin, and the link needs a real navigation. */
-export const APP_IS_EXTERNAL = /^https?:\/\//.test(APP_URL);

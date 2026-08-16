@@ -43,20 +43,37 @@ same empty `<div id="root">` at all eight URLs. Do not "simplify" the build by
 dropping steps 3 and 4 — the pages stop being readable to anything that does not
 execute JavaScript.
 
-## The two addresses this site does not own
+## The one address this site does not own
 
-Both live in `src/landing/config.ts` and both are set from environment
-variables, with production values in `netlify.toml`.
+`VITE_APP_URL`, read in `src/landing/config.ts`, set for production in
+`netlify.toml`. It is where every "Open the live demo" button goes — the demo is
+the application, which deploys from `dentalai`, not from here. Set it wrong and
+the demo buttons 404, which is the single most expensive thing that can break on
+this site.
 
-| Variable | What it is | If it is wrong |
-| --- | --- | --- |
-| `VITE_APP_URL` | Where every "Open the live demo" button goes. The demo is the application, which deploys from `dentalai`, not from here. | Demo buttons 404. |
-| `VITE_API_BASE` | Origin of the API that takes contact-form submissions (`POST /api/v1/demo-requests`, served by the Express server in `dentalai`). Empty means same-origin, which is what dev wants — `vite.config.ts` proxies `/api` to `localhost:3001`. | The form falls back to handing the visitor a prefilled `mailto:`. Leads still arrive, but by hand. |
+## The contact form does not post anywhere
 
-**The API server must allow this origin.** It reads a comma-separated
-`CORS_ORIGIN` environment variable; `https://summitaisoftware.com` has to be in
-it. Nothing in this repository can fix that from this side — a missing entry
-shows up as the mailto fallback, not as an error anyone will notice.
+It validates, then hands the visitor an email addressed to
+`contact@summitaisoftware.com` with everything they typed already written into
+the body. No `fetch`, no backend, no CORS.
+
+This is a deliberate trade, not a stopgap that was never finished. The
+application's own deployment serves `/api/*` as a static mock — there is no
+server left to receive a submission — so the alternative was a form that posts
+into nothing. What it costs: a lead only arrives if the visitor actually presses
+send in their mail client, and nothing here records the ones who abandon. What
+it buys: no enquiry can be lost to a server being down, a CORS header being
+wrong, or a database nobody set up.
+
+**Switch to Netlify Forms when automatic capture starts mattering more than
+having zero infrastructure.** That is a change to `ContactForm.tsx` and a
+`netlify` attribute on the `<form>`; nothing else in the repo assumes anything
+about how leads travel.
+
+One thing to preserve if you do switch: the SMS opt-in. The privacy policy
+promises a timestamped record of every consent, and right now the email body
+*is* that record — it states when and on which page the box was ticked. Whatever
+replaces it has to keep storing that.
 
 ## Adding a page
 
@@ -95,14 +112,14 @@ src/
   Root.tsx              the routes
   index.css             tailwind directives
   landing/
-    config.ts           VITE_APP_URL and VITE_API_BASE
+    config.ts           VITE_APP_URL — where the demo lives
     company.ts          legal identity — address, phone, SMS consent language
     seo.ts              the route table: titles, descriptions, sitemap
     LandingPage.tsx     the home page
     SiteNav / SiteFooter / PageShell
     DemoFrame.tsx       the product screenshot, drawn rather than photographed
     JarvisCore.tsx      the animated hero object
-    ContactForm.tsx     the one thing on the site that posts anywhere
+    ContactForm.tsx     composes a mailto — see above, it posts nowhere
     pages/              About, Services, Contact, Privacy, Terms, …
 ```
 

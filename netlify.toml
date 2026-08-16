@@ -12,12 +12,10 @@
   # TODO: replace with the application's real address before going live.
   VITE_APP_URL = "https://app.summitaisoftware.com/login"
 
-  # Origin of the API that takes contact-form submissions. That server must
-  # list this site in its own CORS_ORIGIN environment variable, or the browser
-  # blocks the POST and the form falls back to a prefilled mailto.
-  #
-  # TODO: replace with the API server's real address before going live.
-  VITE_API_BASE = "https://api.summitaisoftware.com"
+  # There is no API variable, and that is not an omission. The contact form
+  # posts nowhere — it composes a prefilled email for the visitor to send —
+  # because the application serves its own API as a static mock and there is no
+  # server left to receive a submission.
 
 # No SPA catch-all rewrite, and that is deliberate.
 #
